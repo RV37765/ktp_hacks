@@ -1,7 +1,7 @@
 /**
  * Mock Museum Data for ArtGuard AI Security System
  * Simulates a Louvre-style museum with security infrastructure
- */
+ */ 
 
 export const museumData = {
   // Security Cameras
@@ -90,7 +90,7 @@ export const museumData = {
     {
       id: 2,
       name: "Guard Chen",
-      location: "Gallery 3 - Mona Lisa",
+      location: "Gallery 3 - Egyptian Wing",
       room: "Gallery 3",
       status: "on-duty",
       lastCheckIn: "1 minute ago",
@@ -129,7 +129,7 @@ export const museumData = {
       severity: "medium",
       type: "motion",
       message: "Unusual motion pattern detected in Gallery 3",
-      location: "Gallery 3 - Mona Lisa",
+      location: "Gallery 3 - Egyptian Wing",
       camera: 2,
       timestamp: "2 minutes ago",
       status: "investigating",

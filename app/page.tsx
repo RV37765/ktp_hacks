@@ -3,33 +3,92 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import VoiceInput from "@/components/VoiceInput";
 import ChatLog from "@/components/ChatLog";
+import AnimatedCamera from "@/components/AnimatedCamera";
 import { museumData } from "@/lib/museumData";
 import { getSmartResponse } from "@/lib/smartResponses";
 import { speak, isSupported as ttsSupported, stop as stopTTS } from "@/lib/textToSpeech";
+import { cameraFloorMaps } from "@/lib/mapDefinitions";
 
 const HEADER_TITLE = "ArtGuard AI";
 const MAX_MESSAGES = 200;
 
-function CameraGridPlaceholder({ cameras = [], focusedCamera }) {
-  const ids = cameras.length ? cameras.map((c) => c.id) : [1, 2, 3, 4];
+function CameraDisplay({ cameras = [], focusedCamera, alerts = [] }: { cameras?: any[]; focusedCamera: number | null; alerts?: any[] }) {
+  // If a camera is focused, show only that camera in a larger view
+  if (focusedCamera) {
+    const camera = cameras.find((c) => c.id === focusedCamera);
+    if (camera) {
+      const originalMap = cameraFloorMaps[camera.id as keyof typeof cameraFloorMaps];
+      if (!originalMap) {
+        return <div className="text-gray-400">No map data for {camera.name}</div>;
+      }
+
+      // Scale up the floor map for focused view (2x larger)
+      const scaleFactor = 2.4;
+      const scaledMap = {
+        width: originalMap.width * scaleFactor,
+        height: originalMap.height * scaleFactor,
+        obstacles: originalMap.obstacles.map(obs => ({
+          x: obs.x * scaleFactor,
+          y: obs.y * scaleFactor,
+          width: obs.width * scaleFactor,
+          height: obs.height * scaleFactor
+        })),
+        zones: originalMap.zones.map(zone => ({
+          x: zone.x * scaleFactor,
+          y: zone.y * scaleFactor,
+          width: zone.width * scaleFactor,
+          height: zone.height * scaleFactor
+        }))
+      };
+
+      return (
+        <div className="flex justify-center items-center">
+          <AnimatedCamera
+            cameraId={camera.id}
+            cameraName={camera.name}
+            peopleCount={camera.peopleCount || 5}
+            isFocused={true}
+            hasAlert={alerts.some((a) => a.camera === camera.id)}
+            floorMap={scaledMap}
+            onSuspiciousActivity={(dot: any) => console.log('Suspicious activity detected:', camera.id, dot)}
+          />
+        </div>
+      );
+    }
+  }
+
+  // Otherwise show 2x2 grid of first 4 cameras
+  const displayCameras = cameras.slice(0, 4);
   return (
     <div className="grid grid-cols-2 gap-3">
-      {ids.slice(0, 4).map((id) => (
-        <div
-          key={id}
-          className={[
-            "h-40 rounded-lg flex items-center justify-center border",
-            focusedCamera === id ? "bg-gray-700 border-emerald-500" : "bg-gray-700/60 border-gray-600",
-          ].join(" ")}
-        >
-          <div className="text-gray-200">📹 Camera {id}{focusedCamera === id ? " (focused)" : ""}</div>
-        </div>
-      ))}
+      {displayCameras.map((camera) => {
+        const floorMap = cameraFloorMaps[camera.id as keyof typeof cameraFloorMaps];
+        if (!floorMap) {
+          return (
+            <div key={camera.id} className="text-gray-400 flex items-center justify-center h-40">
+              No map for {camera.name}
+            </div>
+          );
+        }
+        return (
+          <div key={camera.id} className="flex justify-center">
+            <AnimatedCamera
+              cameraId={camera.id}
+              cameraName={camera.name}
+              peopleCount={camera.peopleCount || 5}
+              isFocused={false}
+              hasAlert={alerts.some((a) => a.camera === camera.id)}
+              floorMap={floorMap}
+              onSuspiciousActivity={(dot: any) => console.log('Suspicious activity detected:', camera.id, dot)}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function AlertPanelPlaceholder({ alerts = [] }) {
+function AlertPanelPlaceholder({ alerts = [] }: { alerts?: any[] }) {
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-xl p-4">
       <div className="text-gray-100 font-medium mb-2">Alerts</div>
@@ -50,20 +109,20 @@ function AlertPanelPlaceholder({ alerts = [] }) {
 }
 
 export default function Page() {
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: "System online. Say “status report” or try “help” to see commands." },
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([
+    { role: "assistant", content: "System online. Say 'status report' or try 'help' to see commands." },
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [focusedCamera, setFocusedCamera] = useState(null);
+  const [focusedCamera, setFocusedCamera] = useState<number | null>(null);
   const [input, setInput] = useState("");
 
   const context = useMemo(() => museumData, []);
 
-  const addMessage = useCallback((role, content) => {
+  const addMessage = useCallback((role: string, content: string) => {
     setMessages((prev) => [...prev, { role, content }].slice(-MAX_MESSAGES));
   }, []);
 
-  const applyEffects = useCallback((effects) => {
+  const applyEffects = useCallback((effects: any) => {
     if (!effects) return;
     if (typeof effects.focusCameraId !== "undefined") {
       setFocusedCamera(effects.focusCameraId);
@@ -79,7 +138,7 @@ export default function Page() {
   }, []);
 
   const handleCommand = useCallback(
-    async (commandText) => {
+    async (commandText: string) => {
       if (!commandText?.trim()) return;
       addMessage("user", commandText);
       setIsProcessing(true);
@@ -117,6 +176,7 @@ export default function Page() {
         {/* LEFT */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <VoiceInput onTranscript={handleCommand} isProcessing={isProcessing} />
+          {/* @ts-expect-error - ChatLog is a JSX component */}
           <ChatLog messages={messages} isProcessing={isProcessing} />
           <div className="bg-gray-800 border border-gray-700 rounded-xl p-3 flex gap-2">
             <input
@@ -148,7 +208,7 @@ export default function Page() {
               <div className="text-gray-100 font-medium">Camera Feeds</div>
               <div className="text-xs text-gray-400">{focusedCamera ? `Focused: ${focusedCamera}` : "All feeds"}</div>
             </div>
-            <CameraGridPlaceholder cameras={context.cameras} focusedCamera={focusedCamera} />
+            <CameraDisplay cameras={context.cameras} focusedCamera={focusedCamera} alerts={context.alerts} />
           </div>
 
           <AlertPanelPlaceholder alerts={context.alerts} />
