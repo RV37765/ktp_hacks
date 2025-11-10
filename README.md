@@ -4,7 +4,7 @@ AI-powered, voice-controlled security system for the Louvre Museum featuring rea
 
 ## Features
 
-### 🎤 Voice & Text Commands
+### Voice & Text Commands
 - **Web Speech API integration** for hands-free control
 - **Natural language processing** for intuitive commands
 - **Text-to-speech** responses for immersive interaction
@@ -20,7 +20,7 @@ AI-powered, voice-controlled security system for the Louvre Museum featuring rea
   - `"show every visitor"` - Display all visitors (green and red)
   - Artwork/location queries: `"Mona Lisa"`, `"Salle des États"`, `"Egyptian Antiquities"`, `"Winged Victory"`, `"Marly Horses"`
 
-### 📹 Animated Camera Feeds
+### Animated Camera Feeds
 - **Authentic Louvre floor maps** for 4 iconic locations:
   - **Camera 1**: Salle des États (Denon Wing) - Mona Lisa gallery with protective case and viewing benches
   - **Camera 2**: Daru Staircase (Denon Wing) - Winged Victory of Samothrace with grand staircase
